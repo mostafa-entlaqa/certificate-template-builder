@@ -1,48 +1,20 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { getServerSupabase } from './lib/supabaseServer'
 
 export async function middleware(request: NextRequest) {
-    const { pathname } = request.nextUrl
+    
+const supabase = getServerSupabase()
 
-    // Skip middleware for static files and API routes
-    if (
-        pathname.startsWith('/_next') ||
-        pathname.startsWith('/api') ||
-        pathname.startsWith('/static') ||
-        pathname.includes('.')
-    ) {
-        return NextResponse.next()
+    try {
+        const { data: { user }, error } = await supabase.auth.getUser()
+        if (!error && user) {
+        }
+    } catch (error) {
+        console.error('Error getting user in middleware:', error)
     }
 
-    // Create Supabase client for middleware
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            auth: {
-                autoRefreshToken: false,
-                persistSession: false,
-                detectSessionInUrl: false
-            }
-        }
-    )
-
-    // Get access token from cookies
-    const accessToken = request.cookies.get('sb-access-token')?.value
-
-    let user = null
-
-    if (accessToken) {
-        try {
-            const { data: { user: userData }, error } = await supabase.auth.getUser(accessToken)
-            if (!error && userData) {
-                user = userData
-            }
-        } catch (error) {
-            console.error('Error getting user in middleware:', error)
-        }
-    }
 
     // Handle public routes (login, signup)
     if (pathname === '/login' || pathname === '/signup') {
