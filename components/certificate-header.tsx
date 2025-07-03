@@ -23,10 +23,17 @@ interface CertificateHeaderProps {
   onPreview: () => void
   onExport: () => void
   onTestGeneration: () => void
-  canvasWidth: number
-  canvasHeight: number
-  onCanvasSizeChange: (size: { width: number; height: number }) => void
+  canvasSizePreset: string
+  onCanvasSizePresetChange: (preset: string) => void
 }
+
+const sizeOptions = [
+  { value: "a4-landscape", label: "A4 Landscape", dimensions: "297×210mm (842×595 px)" },
+  { value: "a4-portrait", label: "A4 Portrait", dimensions: "210×297mm (595×842 px)" },
+  { value: "us-letter-landscape", label: "US Letter Landscape", dimensions: "11×8.5in (792×612 px)" },
+  { value: "us-letter-portrait", label: "US Letter Portrait", dimensions: "8.5×11in (612×792 px)" },
+  { value: "square", label: "Square Certificate", dimensions: "800×800 px" },
+]
 
 export function CertificateHeader({
   templateName,
@@ -44,9 +51,8 @@ export function CertificateHeader({
   onPreview,
   onExport,
   onTestGeneration,
-  canvasWidth,
-  canvasHeight,
-  onCanvasSizeChange,
+  canvasSizePreset,
+  onCanvasSizePresetChange,
 }: CertificateHeaderProps) {
   return (
     <div className="bg-white/80 backdrop-blur-sm border-b border-white/20 px-6 py-4 flex items-center justify-between shadow-sm">
@@ -93,25 +99,19 @@ export function CertificateHeader({
         <Separator orientation="vertical" className="h-6" />
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <span>Size:</span>
-          <input
-            type="number"
-            min={100}
-            max={3000}
-            value={canvasWidth}
-            onChange={e => onCanvasSizeChange({ width: Number(e.target.value), height: canvasHeight })}
-            className="w-20 h-8 px-2 border rounded mr-1"
-            style={{ fontSize: '1em' }}
-          />
-          <span>x</span>
-          <input
-            type="number"
-            min={100}
-            max={3000}
-            value={canvasHeight}
-            onChange={e => onCanvasSizeChange({ width: canvasWidth, height: Number(e.target.value) })}
-            className="w-20 h-8 px-2 border rounded"
-            style={{ fontSize: '1em' }}
-          />
+          <div className="flex gap-2">
+            {sizeOptions.map((size) => (
+              <button
+                key={size.value}
+                className={`p-2 rounded-lg border-2 transition-all flex flex-col items-center min-w-[120px] ${canvasSizePreset === size.value ? 'border-blue-600 bg-blue-50 shadow' : 'border-gray-200 bg-white hover:border-blue-400'}`}
+                onClick={() => onCanvasSizePresetChange(size.value)}
+                type="button"
+              >
+                <span className="font-semibold">{size.label}</span>
+                <span className="text-xs text-gray-500">{size.dimensions}</span>
+              </button>
+            ))}
+          </div>
         </div>
         <Separator orientation="vertical" className="h-6" />
         <Button

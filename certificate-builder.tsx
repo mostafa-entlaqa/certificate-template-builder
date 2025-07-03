@@ -30,6 +30,24 @@ const testCertificateData = {
   grade: "ممتاز",
 }
 
+// A4 sizes in px at 72dpi
+const A4_PORTRAIT = { width: 595, height: 842 }
+const A4_LANDSCAPE = { width: 842, height: 595 }
+const US_LETTER_PORTRAIT = { width: 612, height: 792 }
+const US_LETTER_LANDSCAPE = { width: 792, height: 612 }
+const SQUARE = { width: 800, height: 800 }
+
+function getPresetSize(preset: string) {
+  switch (preset) {
+    case "a4-landscape": return A4_LANDSCAPE
+    case "a4-portrait": return A4_PORTRAIT
+    case "us-letter-landscape": return US_LETTER_LANDSCAPE
+    case "us-letter-portrait": return US_LETTER_PORTRAIT
+    case "square": return SQUARE
+    default: return A4_LANDSCAPE
+  }
+}
+
 export default function CertificateBuilder({ template, organizationId, onBack, onSave }: CertificateBuilderProps) {
   const [templateName, setTemplateName] = useState(template?.name || "Untitled Template")
   const [elements, setElements] = useState<CanvasElement[]>(template?.elements || [])
@@ -42,12 +60,15 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
   const [resizeHandle, setResizeHandle] = useState<string>("")
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [canvasSize, setCanvasSize] = useState(() => {
-    return {
-      width: template?.canvas_width || 800,
-      height: template?.canvas_height || 600,
-    }
+  const [canvasSizePreset, setCanvasSizePreset] = useState(() => {
+    if (template?.canvas_width === A4_LANDSCAPE.width && template?.canvas_height === A4_LANDSCAPE.height) return "a4-landscape"
+    if (template?.canvas_width === A4_PORTRAIT.width && template?.canvas_height === A4_PORTRAIT.height) return "a4-portrait"
+    if (template?.canvas_width === US_LETTER_LANDSCAPE.width && template?.canvas_height === US_LETTER_LANDSCAPE.height) return "us-letter-landscape"
+    if (template?.canvas_width === US_LETTER_PORTRAIT.width && template?.canvas_height === US_LETTER_PORTRAIT.height) return "us-letter-portrait"
+    if (template?.canvas_width === SQUARE.width && template?.canvas_height === SQUARE.height) return "square"
+    return "a4-landscape"
   })
+  const [canvasSize, setCanvasSize] = useState(() => getPresetSize(canvasSizePreset))
   const [zoom, setZoom] = useState(100)
   const [nextZIndex, setNextZIndex] = useState(() => {
     const maxZIndex = Math.max(0, ...(template?.elements || []).map((el) => el.zIndex || 0))
@@ -358,12 +379,9 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
         const newX = (e.clientX - rect.left) * scaleX - dragStart.x
         const newY = (e.clientY - rect.top) * scaleY - dragStart.y
 
-        const maxX = canvasSize.width - element.width
-        const maxY = canvasSize.height - element.height
-
         updateElement(selectedElement, {
-          x: Math.max(0, Math.min(newX, maxX)),
-          y: Math.max(0, Math.min(newY, maxY)),
+          x: newX,
+          y: newY,
         })
       } else if (isResizing) {
         const deltaX = e.clientX - resizeStart.x
@@ -411,9 +429,6 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
             break
         }
 
-        newX = Math.max(0, Math.min(newX, canvasSize.width - newWidth))
-        newY = Math.max(0, Math.min(newY, canvasSize.height - newHeight))
-
         updateElement(selectedElement, {
           x: newX,
           y: newY,
@@ -422,17 +437,7 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
         })
       }
     },
-    [
-      selectedElement,
-      isDragging,
-      isResizing,
-      dragStart,
-      resizeStart,
-      resizeHandle,
-      elements,
-      canvasSize,
-      updateElement,
-    ],
+    [selectedElement, isDragging, isResizing, dragStart, resizeStart, resizeHandle, elements, canvasSize, updateElement],
   )
 
   const handleMouseUp = useCallback(() => {
@@ -482,6 +487,12 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
       )
       return { width, height }
     })
+  }, [])
+
+  // Handle canvas size preset change
+  const handleCanvasSizePresetChange = useCallback((preset: string) => {
+    setCanvasSizePreset(preset)
+    setCanvasSize(getPresetSize(preset))
   }, [])
 
   const handleSave = async () => {
@@ -619,9 +630,8 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
         onPreview={handlePreview}
         onExport={handleExport}
         onTestGeneration={handleTestGeneration}
-        canvasWidth={canvasSize.width}
-        canvasHeight={canvasSize.height}
-        onCanvasSizeChange={handleCanvasSizeChange}
+        canvasSizePreset={canvasSizePreset}
+        onCanvasSizePresetChange={handleCanvasSizePresetChange}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -637,8 +647,8 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
           onReorderLayers={handleReorderLayers}
         />
 
-        <div className="flex-1 overflow-auto p-8">
-          <div className="flex justify-center">
+        <div className="flex-1 overflow-auto flex items-center justify-center p-2">
+          <div className="flex justify-center items-center w-full h-full">
             <div
               ref={canvasRef}
               className="bg-white shadow-2xl rounded-xl relative border border-white/30"
@@ -647,7 +657,9 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
                 height: canvasSize.height,
                 transform: `scale(${zoom / 100})`,
                 transformOrigin: "center",
-                overflow: "visible",
+                overflow: "hidden",
+                maxWidth: '100%',
+                maxHeight: '90vh',
               }}
               onClick={handleCanvasClick}
               onMouseMove={handleMouseMove}
