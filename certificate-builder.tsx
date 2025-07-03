@@ -138,32 +138,17 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
 
   const addTextElement = useCallback(
     (style: any) => {
-      let x = 100
-      let y = 100
-      let attempts = 0
-      const maxAttempts = 20
-
-      while (attempts < maxAttempts) {
-        const overlapping = elements.some(
-          (el) =>
-            x < el.x + el.width &&
-            x + 300 > el.x &&
-            y < el.y + el.height &&
-            y + Math.max(50, (style.fontSize || 24) + 20) > el.y,
-        )
-        if (!overlapping) break
-        x += 50
-        y += 30
-        attempts++
-      }
-
+      const width = 300
+      const height = Math.max(50, (style.fontSize || 24) + 20)
+      const x = (canvasSize.width - width) / 2
+      const y = (canvasSize.height - height) / 2
       const newElement: CanvasElement = {
         id: Date.now().toString(),
         type: "text",
         x,
         y,
-        width: 300,
-        height: Math.max(50, (style.fontSize || 24) + 20),
+        width,
+        height,
         zIndex: nextZIndex,
         content: style.content,
         fontSize: style.fontSize,
@@ -172,88 +157,63 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
         textAlign: "center",
         color: style.color || "#000000",
       }
-
       setElements((prev) => [...prev, newElement])
       setSelectedElement(newElement.id)
       setNextZIndex((prev) => prev + 1)
       saveToHistory()
     },
-    [elements, nextZIndex, saveToHistory],
+    [canvasSize, nextZIndex, saveToHistory],
   )
 
   const addShapeElement = useCallback(
     (shapeType: string, color: string) => {
-      let x = 150
-      let y = 150
-      let attempts = 0
-      const maxAttempts = 20
-
-      while (attempts < maxAttempts) {
-        const overlapping = elements.some(
-          (el) => x < el.x + el.width && x + 100 > el.x && y < el.y + el.height && y + 100 > el.y,
-        )
-        if (!overlapping) break
-        x += 60
-        y += 40
-        attempts++
-      }
-
+      const width = 100
+      const height = 100
+      const x = (canvasSize.width - width) / 2
+      const y = (canvasSize.height - height) / 2
       const newElement: CanvasElement = {
         id: Date.now().toString(),
         type: "shape",
         x,
         y,
-        width: 100,
-        height: 100,
+        width,
+        height,
         zIndex: nextZIndex,
         backgroundColor: color,
         borderColor: "#ffffff",
         borderWidth: 2,
         shapeType,
       }
-
       setElements((prev) => [...prev, newElement])
       setSelectedElement(newElement.id)
       setNextZIndex((prev) => prev + 1)
       saveToHistory()
     },
-    [elements, nextZIndex, saveToHistory],
+    [canvasSize, nextZIndex, saveToHistory],
   )
 
   const addImageElement = useCallback(
     (imageUrl: string) => {
-      let x = 200
-      let y = 200
-      let attempts = 0
-      const maxAttempts = 20
-
-      while (attempts < maxAttempts) {
-        const overlapping = elements.some(
-          (el) => x < el.x + el.width && x + 200 > el.x && y < el.y + el.height && y + 150 > el.y,
-        )
-        if (!overlapping) break
-        x += 60
-        y += 40
-        attempts++
-      }
-
+      const width = 200
+      const height = 150
+      const x = (canvasSize.width - width) / 2
+      const y = (canvasSize.height - height) / 2
       const newElement: CanvasElement = {
         id: Date.now().toString(),
         type: "image",
         x,
         y,
-        width: 200,
-        height: 150,
+        width,
+        height,
         zIndex: nextZIndex,
         imageUrl,
       }
-
       setElements((prev) => [...prev, newElement])
       setSelectedElement(newElement.id)
       setNextZIndex((prev) => prev + 1)
       saveToHistory()
     },
-    [elements, nextZIndex, saveToHistory],
+    [canvasSize, nextZIndex, saveToHistory],
   )
 
   const updateElement = useCallback(
