@@ -61,6 +61,11 @@ export async function generateCertificatePDF(
  * @param filename  Desired filename (must include .pdf).
  */
 export function downloadPDF(blob: Blob, filename: string) {
+  // Check if we're in a browser environment
+  if (typeof document === 'undefined') {
+    throw new Error('This function must be called in a browser environment')
+  }
+  
   const url = URL.createObjectURL(blob)
   const a = document.createElement("a")
   a.href = url

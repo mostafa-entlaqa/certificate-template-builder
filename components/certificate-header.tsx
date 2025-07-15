@@ -142,10 +142,10 @@ export function CertificateHeader({
           <Download className="h-4 w-4 mr-2" />
           Export
         </Button>
-        <Button variant="ghost" size="sm" className="hover:bg-cyan-100" onClick={onTestGeneration}>
+        {/* <Button variant="ghost" size="sm" className="hover:bg-cyan-100" onClick={onTestGeneration}>
           <TestTube className="h-4 w-4 mr-2" />
           Test
-        </Button>
+        </Button> */}
         <Button
           onClick={onSave}
           disabled={isSaving}

@@ -85,6 +85,7 @@ const dynamicFields = [
   },
   { field: "instructor_name", label: "Instructor Name", placeholder: "Jane Smith", icon: Type, color: "#06B6D4" },
   { field: "grade", label: "Grade", placeholder: "A+", icon: Type, color: "#10B981" },
+  { field: "qr_code", label: "QR Code", placeholder: "QR Placeholder", icon: ImageIcon, color: "#6366F1", isQR: true },
 ]
 
 const shapes = [
@@ -92,6 +93,15 @@ const shapes = [
   { name: "Circle", icon: Square, type: "circle", color: "#EF4444" },
   { name: "Star", icon: Star, type: "star", color: "#F59E0B" },
 ]
+
+// Add QR element config
+const qrElement = {
+  name: "QR Code",
+  icon: ImageIcon, // You can use a different icon if you prefer
+  type: "qr",
+  color: "#6366F1",
+  placeholder: "/qr-placeholder.jpg",
+}
 
 export function ElementsSidebar({
   elements,
@@ -186,23 +196,39 @@ export function ElementsSidebar({
                       key={index}
                       variant="ghost"
                       className="w-full justify-start h-auto p-3 hover:bg-white/50 transition-all duration-200 hover:scale-105"
-                      onClick={() =>
-                        onAddTextElement({
-                          name: field.label,
-                          content: `{{${field.field}}}`,
-                          fontSize: 20,
-                          fontWeight: "normal",
-                          color: field.color,
-                          icon: field.icon,
-                        })
-                      }
+                      onClick={() => {
+                        if (field.isQR) {
+                          // Add a QR element with type 'qr'
+                          const width = 150;
+                          const height = 150;
+                          const x = 100;
+                          const y = 100;
+                          onAddImageElement && onAddImageElement({
+                            id: Date.now().toString(),
+                            type: 'qr',
+                            x,
+                            y,
+                            width,
+                            height,
+                            zIndex: 1,
+                            imageUrl: '/qr-placeholder.jpg',
+                          });
+                        } else {
+                          onAddTextElement({
+                            name: field.label,
+                            content: `{{${field.field}}}`,
+                            fontSize: 20,
+                            fontWeight: "normal",
+                            color: field.color,
+                            icon: field.icon,
+                          })
+                        }
+                      }}
                     >
-                      <div className="flex items-center gap-3 w-full">
-                        <field.icon className="h-4 w-4" style={{ color: field.color }} />
-                        <div className="text-left flex-1">
-                          <div className="font-medium text-sm">{field.label}</div>
-                          <div className="text-xs text-gray-500">{field.placeholder}</div>
-                        </div>
+                      <field.icon className="h-4 w-4" style={{ color: field.color }} />
+                      <div className="text-left flex-1">
+                        <div className="font-medium text-sm">{field.label}</div>
+                        <div className="text-xs text-gray-500">{field.placeholder}</div>
                       </div>
                     </Button>
                   ))}
@@ -234,6 +260,17 @@ export function ElementsSidebar({
                     accept="image/*"
                     onChange={handleImageUpload}
                   />
+                  {/* QR Code Button */}
+                  <Button
+                    variant="outline"
+                    className="w-full mt-2 bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200 hover:from-purple-100 hover:to-blue-100 transition-all duration-200 flex items-center gap-2"
+                    onClick={() =>
+                      onAddImageElement(qrElement.placeholder)
+                    }
+                  >
+                    <qrElement.icon className="h-4 w-4" style={{ color: qrElement.color }} />
+                    <span>QR Code</span>
+                  </Button>
                 </CardContent>
               </Card>
 

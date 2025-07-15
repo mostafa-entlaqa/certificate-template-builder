@@ -1,6 +1,6 @@
 export interface CanvasElement {
   id: string
-  type: "text" | "image" | "shape" | "dynamic"
+  type: "text" | "image" | "shape" | "dynamic" | "qr"
   x: number
   y: number
   width: number

@@ -123,6 +123,51 @@ export function CertificateTestPreview() {
     setJsonInput(JSON.stringify(defaultTestData, null, 2))
   }
 
+  const handleExport = async () => {
+    if (!selectedTemplate) {
+      alert("Please select a template first")
+      return
+    }
+    
+    try {
+      const response = await fetch('/api/certificate/export', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          student_name: testData.student_name,
+          course_name: testData.course_name,
+          template_id: selectedTemplate.id,
+          org_id: testData.org_id,
+          completion_date: testData.completion_date,
+          instructor_name: testData.instructor_name,
+          grade: testData.grade,
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      
+      if (result.success && result.data) {
+        // Show success message with the PDF link
+        alert(`Certificate PDF generated successfully!\n\nPDF URL: ${result.data.public_url}\n\nOpening PDF in new tab...`)
+        
+        // Open the PDF URL in a new tab
+        window.open(result.data.public_url, '_blank')
+      } else {
+        throw new Error('Failed to generate PDF')
+      }
+    } catch (error) {
+      console.error("PDF generation error:", error)
+      alert(`Failed to generate PDF: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -226,9 +271,9 @@ export function CertificateTestPreview() {
             </div>
 
             <div className="flex gap-2">
-              <Button onClick={handlePreview} className="flex-1 bg-green-600 hover:bg-green-700">
+              <Button onClick={handleExport} className="flex-1 bg-green-600 hover:bg-green-700">
                 <Play className="h-4 w-4 mr-2" />
-                Generate Preview
+                Generate
               </Button>
               <Button onClick={resetData} variant="outline" size="sm">
                 <RefreshCw className="h-4 w-4" />
@@ -337,10 +382,8 @@ export function CertificateTestPreview() {
               grade: testData.grade,
             }
           )
-          downloadPDF(
-            pdfBlob,
-            `${selectedTemplate.name.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.pdf`
-          )
+          const filename = `${selectedTemplate.name.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.pdf`
+          downloadPDF(pdfBlob, filename)
         }}
         testData={{
           student_name: testData.student_name,

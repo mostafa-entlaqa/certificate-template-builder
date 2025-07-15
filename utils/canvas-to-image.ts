@@ -10,6 +10,11 @@ export const generateCanvasPreview = (
   },
 ): Promise<string> => {
   return new Promise((resolve) => {
+    // Check if we're in a browser environment
+    if (typeof document === 'undefined') {
+      throw new Error('This function must be called in a browser environment')
+    }
+    
     const canvas = document.createElement("canvas")
     const ctx = canvas.getContext("2d")!
 

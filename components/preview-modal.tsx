@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { X, Download } from 'lucide-react'
 import type { CanvasElement } from "../types/canvas"
-import { generateCertificatePDF, downloadPDF } from "../utils/canvas-to-pdf"
+import { exportAndDownloadCertificate } from "../utils/certificate-api"
 
 interface PreviewModalProps {
   isOpen: boolean
@@ -33,13 +33,22 @@ export function PreviewModal({
 }: PreviewModalProps) {
   const handleExportPDF = async () => {
     try {
-      const pdfBlob = await generateCertificatePDF(elements, canvasSize, testData)
-      
       const filename = testData
         ? `certificate_${testData.student_name.replace(/\s+/g, "_")}_${Date.now()}.pdf`
         : `${templateName.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.pdf`
 
-      downloadPDF(pdfBlob, filename)
+      await exportAndDownloadCertificate({
+        elements,
+        canvasSize,
+        templateName: filename,
+        testData: testData || {
+          student_name: "",
+          course_name: "",
+          completion_date: "",
+          instructor_name: "",
+          grade: "",
+        }
+      })
     } catch (error) {
       console.error("PDF export failed:", error)
       alert("Failed to export PDF. Please try again.")

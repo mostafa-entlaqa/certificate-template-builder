@@ -12,7 +12,7 @@ import { supabase } from "./lib/supabase"
 import type { CanvasElement } from "./types/canvas"
 import { CanvasElementComponent } from "./components/canvas-element"
 import { generateCanvasPreview } from "./utils/canvas-to-image"
-import { generateCertificatePDF, downloadPDF } from "./utils/canvas-to-pdf"
+import { exportAndDownloadCertificate, exportAndOpenCertificate } from "./utils/certificate-api"
 
 interface CertificateBuilderProps {
   template?: Template | null
@@ -20,6 +20,7 @@ interface CertificateBuilderProps {
   onBack: () => void
   onSave?: (template: Template) => void
 }
+const QR_CODE_ELEMENT_TYPE = "qr"
 
 // Test data for certificate generation
 const testCertificateData = {
@@ -522,20 +523,27 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
 
   const handleExport = async () => {
     try {
-      // Determine if we should use test data (when in preview mode with test data)
-      const exportData = previewWithTestData ? testCertificateData : undefined
+      if (!template?.id) {
+        alert('Cannot export: Missing template_id. Please save your template first.');
+        return;
+      }
+      // Always use test data for now
+      const exportData = testCertificateData;
 
-      // Generate PDF instead of PNG
-      const pdfBlob = await generateCertificatePDF(elements, canvasSize, exportData)
+      const fileName = `certificate_${exportData.student_name.replace(/\s+/g, "_")}_${Date.now()}.pdf`;
 
-      const fileName = exportData
-        ? `certificate_${exportData.student_name.replace(/\s+/g, "_")}_${Date.now()}.pdf`
-        : `${templateName.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.pdf`
-
-      downloadPDF(pdfBlob, fileName)
+      await exportAndOpenCertificate({
+        template_id: template.id,
+        student_name: exportData.student_name,
+        course_name: exportData.course_name,
+        completion_date: exportData.completion_date,
+        instructor_name: exportData.instructor_name,
+        grade: exportData.grade,
+        org_id: currentOrgId || ''
+      });
     } catch (error) {
-      console.error("Export failed:", error)
-      alert("Failed to export certificate. Please try again.")
+      console.error("Export failed:", error);
+      alert("Failed to export certificate. Please try again.");
     }
   }
 
@@ -589,7 +597,7 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
         canRedo={canRedo}
         onPreview={handlePreview}
         onExport={handleExport}
-        onTestGeneration={handleTestGeneration}
+        // onTestGeneration={handleTestGeneration}
         canvasSizePreset={canvasSizePreset}
         onCanvasSizePresetChange={handleCanvasSizePresetChange}
       />
