@@ -20,6 +20,7 @@ interface CertificateBuilderProps {
   onBack: () => void
   onSave?: (template: Template) => void
 }
+const QR_CODE_ELEMENT_TYPE = "qr"
 
 // Test data for certificate generation
 const testCertificateData = {
