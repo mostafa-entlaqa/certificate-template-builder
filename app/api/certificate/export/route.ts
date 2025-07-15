@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { CanvasElement } from '@/types/canvas'
 import { createClient } from '@supabase/supabase-js'
 import puppeteer from 'puppeteer'
+// @ts-ignore
+import QRCode from 'qrcode'
 
 // Create a service role client for API routes
 const supabaseUrl = "https://zccuayvctmnaureizyua.supabase.co"
@@ -33,7 +35,7 @@ async function generateAndSavePDF(orgId: string, studentName: string, template: 
     await page.setViewport({ width: canvasWidth, height: canvasHeight })
     
     // Create HTML content based on template elements
-    const htmlContent = generateHTMLFromTemplate(template, studentData)
+    const htmlContent = await generateHTMLFromTemplate(template, studentData)
     
     // Set the HTML content
     await page.setContent(htmlContent, { waitUntil: 'networkidle0' })
@@ -92,7 +94,7 @@ async function generateAndSavePDF(orgId: string, studentName: string, template: 
 }
 
 // Generate HTML from template elements
-function generateHTMLFromTemplate(template: any, studentData: any) {
+async function generateHTMLFromTemplate(template: any, studentData: any) {
   const elements = template.elements || []
   const canvasWidth = template.canvas_width || 800
   const canvasHeight = template.canvas_height || 600
@@ -149,16 +151,22 @@ function generateHTMLFromTemplate(template: any, studentData: any) {
         background-position: center;
         background-repeat: no-repeat;
       `
+    } else if (type === 'qr') {
+      elementCSS += `
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+      `
     }
     
     elementCSS += '}'
     return elementCSS
   }).join('\n')
   
-  // Create HTML elements
-  const elementHTML = elements.map((element: any, index: number) => {
+  // Create HTML elements (async for QR)
+  const elementHTML = await Promise.all(elements.map(async (element: any, index: number) => {
     const { type, content, imageUrl } = element
-    
     if (type === 'text') {
       let displayText = content || '';
       // Replace all placeholders globally
@@ -169,18 +177,21 @@ function generateHTMLFromTemplate(template: any, studentData: any) {
         .replace(/{{instructor_name}}/g, studentData.instructor_name)
         .replace(/{{grade}}/g, studentData.grade)
         .replace(/{{org_id}}/g, studentData.org_id);
-
       console.log(`Text element ${index}: "${content}" -> "${displayText}"`);
-
       return `<div class="element-${index}">${displayText}</div>`;
     } else if (type === 'rectangle') {
       return `<div class="element-${index}"></div>`
     } else if (type === 'image') {
       return `<div class="element-${index}"></div>`
+    } else if (type === 'qr') {
+      // Generate QR code for the provided link
+      const qrValue = studentData.student_qr_url || 'https://default-link.com';
+      const qrDataUrl = await QRCode.toDataURL(qrValue);
+      return `<div class="element-${index}"><img src="${qrDataUrl}" alt="QR Code" style="width:100%;height:100%;object-fit:contain;" /></div>`;
     }
-    
     return ''
-  }).join('\n')
+  }))
+  .then(results => results.join('\n'))
   
   // Create background style
   let backgroundStyle = `background: ${background};`
@@ -235,6 +246,7 @@ interface CertificateExportRequest {
   completion_date: string
   instructor_name: string
   grade: string
+  student_qr_url?: string
 }
 
 export async function POST(request: NextRequest) {
@@ -300,12 +312,23 @@ export async function POST(request: NextRequest) {
       elements: template.elements
     })
 
-    // Extract template data
-    const elements = template.elements || []
+    // Convert any image element with the QR placeholder to a QR element
+    const fixedElements = (template.elements || []).map((el: any) => {
+      if (
+        el.type === "image" &&
+        (el.imageUrl === "/qr-placeholder.jpg" || el.imageUrl?.includes("qr-placeholder"))
+      ) {
+        return { ...el, type: "qr" };
+      }
+      return el;
+    });
+    const fixedTemplate = { ...template, elements: fixedElements };
+
+    const elements = fixedTemplate.elements || [];
     const canvasSize = {
-      width: template.canvas_width || 800,
-      height: template.canvas_height || 600
-    }
+      width: fixedTemplate.canvas_width || 800,
+      height: fixedTemplate.canvas_height || 600
+    };
 
     // If no elements, return error
     if (elements.length === 0) {
@@ -313,7 +336,7 @@ export async function POST(request: NextRequest) {
         { 
           error: 'Template has no elements', 
           template_id,
-          template_name: template.name,
+          template_name: fixedTemplate.name,
           message: 'The template exists but has no elements to render. Please add elements to your template first.'
         },
         { status: 400 }
@@ -324,7 +347,7 @@ export async function POST(request: NextRequest) {
     const storageResult = await generateAndSavePDF(
       org_id || 'default',
       student_name,
-      template,
+      fixedTemplate,
       {
         student_name,
         course_name,
@@ -332,7 +355,8 @@ export async function POST(request: NextRequest) {
         org_id,
         completion_date,
         instructor_name,
-        grade
+        grade,
+        student_qr_url: body.student_qr_url // ensure this is passed
       }
     )
 
