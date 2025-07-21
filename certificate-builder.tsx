@@ -20,15 +20,19 @@ interface CertificateBuilderProps {
   onBack: () => void
   onSave?: (template: Template) => void
 }
-const QR_CODE_ELEMENT_TYPE = "qr"
 
 // Test data for certificate generation
 const testCertificateData = {
   student_name: "أحمد محمد علي",
+  recipient_name: "سارة إبراهيم",
   course_name: "تطوير تطبيقات الويب",
+  template_id: "",
+  org_id: "",
   completion_date: "15 ديسمبر 2024",
   instructor_name: "د. فاطمة السيد",
   grade: "ممتاز",
+  student_qr_url: "https://github.com/",
+  company_logo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIzNId5-0lNUVarWW_-q7DD0wPOkdyL5p71g&s"
 }
 
 // A4 sizes in px at 72dpi
@@ -500,9 +504,6 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
       if (onSave) {
         onSave(result)
       }
-
-      // Go back to templates list after saving
-      onBack()
     } catch (error) {
       console.error("Save failed:", error)
       alert("Failed to save template. Please try again.")
@@ -535,11 +536,14 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
       await exportAndOpenCertificate({
         template_id: template.id,
         student_name: exportData.student_name,
+        recipient_name: exportData.recipient_name,
         course_name: exportData.course_name,
         completion_date: exportData.completion_date,
         instructor_name: exportData.instructor_name,
         grade: exportData.grade,
-        org_id: currentOrgId || ''
+        org_id: currentOrgId || '',
+        student_qr_url: exportData.student_qr_url,
+        company_logo: exportData.company_logo
       });
     } catch (error) {
       console.error("Export failed:", error);

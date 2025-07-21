@@ -2,12 +2,15 @@ import type { CanvasElement } from '@/types/canvas'
 
 interface CertificateExportData {
   student_name: string
+  recipient_name?: string
   course_name: string
   template_id: string
   org_id: string
   completion_date: string
   instructor_name: string
   grade: string
+  student_qr_url?: string
+  company_logo?: string
 }
 
 interface CertificateExportResponse {

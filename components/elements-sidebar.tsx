@@ -30,7 +30,7 @@ interface ElementsSidebarProps {
   selectedElement: string | null
   onAddTextElement: (style: any) => void
   onAddShapeElement: (shapeType: string, color: string) => void
-  onAddImageElement: (imageUrl: string) => void
+  onAddImageElement: (imageUrl: string | { id: string; type: string; x: number; y: number; width: number; height: number; zIndex: number; imageUrl: string }) => void
   onSelectElement: (id: string) => void
   onDuplicateElement: (id: string) => void
   onDeleteElement: (id: string) => void
@@ -85,7 +85,8 @@ const dynamicFields = [
   },
   { field: "instructor_name", label: "Instructor Name", placeholder: "Jane Smith", icon: Type, color: "#06B6D4" },
   { field: "grade", label: "Grade", placeholder: "A+", icon: Type, color: "#10B981" },
-  { field: "qr_code", label: "QR Code", placeholder: "QR Placeholder", icon: ImageIcon, color: "#6366F1", isQR: true },
+//   { field: "qr_code", label: "QR Code", placeholder: "QR Placeholder", icon: ImageIcon, color: "#6366F1", isQR: true },
+//   { field: "company_logo", label: "Logo", placeholder: "Logo Placeholder", icon: ImageIcon, color: "#6366F1", isLogo: true },
 ]
 
 const shapes = [
@@ -101,6 +102,13 @@ const qrElement = {
   type: "qr",
   color: "#6366F1",
   placeholder: "/qr-placeholder.jpg",
+}
+const logoElement = {
+  name: "Logo",
+  icon: ImageIcon, // You can use a different icon if you prefer
+  type: "logo",
+  color: "#6366F1",
+  placeholder: "/landscape-placeholder.svg",
 }
 
 export function ElementsSidebar({
@@ -197,23 +205,7 @@ export function ElementsSidebar({
                       variant="ghost"
                       className="w-full justify-start h-auto p-3 hover:bg-white/50 transition-all duration-200 hover:scale-105"
                       onClick={() => {
-                        if (field.isQR) {
-                          // Add a QR element with type 'qr'
-                          const width = 150;
-                          const height = 150;
-                          const x = 100;
-                          const y = 100;
-                          onAddImageElement && onAddImageElement({
-                            id: Date.now().toString(),
-                            type: 'qr',
-                            x,
-                            y,
-                            width,
-                            height,
-                            zIndex: 1,
-                            imageUrl: '/qr-placeholder.jpg',
-                          });
-                        } else {
+                       
                           onAddTextElement({
                             name: field.label,
                             content: `{{${field.field}}}`,
@@ -222,7 +214,7 @@ export function ElementsSidebar({
                             color: field.color,
                             icon: field.icon,
                           })
-                        }
+                        
                       }}
                     >
                       <field.icon className="h-4 w-4" style={{ color: field.color }} />
@@ -270,6 +262,16 @@ export function ElementsSidebar({
                   >
                     <qrElement.icon className="h-4 w-4" style={{ color: qrElement.color }} />
                     <span>QR Code</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full mt-2 bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200 hover:from-purple-100 hover:to-blue-100 transition-all duration-200 flex items-center gap-2"
+                    onClick={() =>
+                      onAddImageElement(logoElement.placeholder)
+                    }
+                  >
+                    <logoElement.icon className="h-4 w-4" style={{ color: logoElement.color }} />
+                    <span>Logo</span>
                   </Button>
                 </CardContent>
               </Card>
