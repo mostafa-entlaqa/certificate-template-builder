@@ -229,15 +229,20 @@ export function PropertiesSidebar({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div>
-                  <Label className="text-xs text-gray-600">Text Content</Label>
-                  <Input
-                    value={selectedElement.content || ""}
-                    onChange={(e) => onUpdateElement(selectedElement.id, { content: e.target.value })}
-                    className="bg-white/50"
-                    placeholder="Enter text content"
-                  />
-                </div>
+                {/* Only show Text Content if not a dynamic field; show a message if it is */}
+                {selectedElement.type === "text" && selectedElement.content && /^\{\{[a-zA-Z0-9_]+\}\}$/.test(selectedElement.content) ? (
+                  <div className="text-xs text-gray-500 italic py-2">This is a dynamic field and cannot be edited here.</div>
+                ) : (
+                  <div>
+                    <Label className="text-xs text-gray-600">Text Content</Label>
+                    <Input
+                      value={selectedElement.content || ""}
+                      onChange={(e) => onUpdateElement(selectedElement.id, { content: e.target.value })}
+                      className="bg-white/50"
+                      placeholder="Enter text content"
+                    />
+                  </div>
+                )}
 
                 <div>
                   <Label className="text-xs text-gray-600">Font Family (Arabic Support)</Label>
@@ -314,36 +319,28 @@ export function PropertiesSidebar({
                   <ToggleGroup type="multiple" className="mt-1">
                     <ToggleGroupItem
                       value="bold"
-                      pressed={selectedElement.fontWeight === "bold"}
-                      onPressedChange={(pressed) =>
-                        onUpdateElement(selectedElement.id, { fontWeight: pressed ? "bold" : "normal" })
-                      }
                       size="sm"
                       className="bg-white/50"
+                      aria-pressed={selectedElement.fontWeight === "bold"}
+                      onClick={() => onUpdateElement(selectedElement.id, { fontWeight: selectedElement.fontWeight === "bold" ? "normal" : "bold" })}
                     >
                       <Bold className="h-4 w-4" />
                     </ToggleGroupItem>
                     <ToggleGroupItem
                       value="italic"
-                      pressed={selectedElement.fontStyle === "italic"}
-                      onPressedChange={(pressed) =>
-                        onUpdateElement(selectedElement.id, { fontStyle: pressed ? "italic" : "normal" })
-                      }
                       size="sm"
                       className="bg-white/50"
+                      aria-pressed={selectedElement.fontStyle === "italic"}
+                      onClick={() => onUpdateElement(selectedElement.id, { fontStyle: selectedElement.fontStyle === "italic" ? "normal" : "italic" })}
                     >
                       <Italic className="h-4 w-4" />
                     </ToggleGroupItem>
                     <ToggleGroupItem
                       value="underline"
-                      pressed={selectedElement.textDecoration === "underline"}
-                      onPressedChange={(pressed) =>
-                        onUpdateElement(selectedElement.id, {
-                          textDecoration: pressed ? "underline" : "none",
-                        })
-                      }
                       size="sm"
                       className="bg-white/50"
+                      aria-pressed={selectedElement.textDecoration === "underline"}
+                      onClick={() => onUpdateElement(selectedElement.id, { textDecoration: selectedElement.textDecoration === "underline" ? "none" : "underline" })}
                     >
                       <Underline className="h-4 w-4" />
                     </ToggleGroupItem>
@@ -408,7 +405,7 @@ export function PropertiesSidebar({
               </div>
 
               {/* Gradient Presets */}
-              <div>
+              {/* <div>
                 <Label className="text-xs text-gray-600">Gradient Presets</Label>
                 <div className="grid grid-cols-3 gap-2 mt-2">
                   {gradientBackgrounds.map((gradient, index) => (
@@ -420,7 +417,7 @@ export function PropertiesSidebar({
                     />
                   ))}
                 </div>
-              </div>
+              </div> */}
             </CardContent>
           </Card>
 

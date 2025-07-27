@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import CertificateBuilder from "../../certificate-builder"
+import CertificateBuilder from "../../components/certificate-builder"
 
 export default function NewBuilderPage() {
   const router = useRouter()

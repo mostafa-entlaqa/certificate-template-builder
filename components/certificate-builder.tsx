@@ -2,17 +2,18 @@
 
 import type React from "react"
 import { useState, useCallback, useEffect, useRef } from "react"
-import { CertificateHeader } from "./components/certificate-header"
-import { ElementsSidebar } from "./components/elements-sidebar"
-import { PropertiesSidebar } from "./components/properties-sidebar"
-import { PreviewModal } from "./components/preview-modal"
-import { useTemplates, type Template } from "./hooks/use-templates"
-import { useHistory } from "./hooks/use-history"
-import { supabase } from "./lib/supabase"
-import type { CanvasElement } from "./types/canvas"
-import { CanvasElementComponent } from "./components/canvas-element"
-import { generateCanvasPreview } from "./utils/canvas-to-image"
-import { exportAndDownloadCertificate, exportAndOpenCertificate } from "./utils/certificate-api"
+import { CertificateHeader } from "./certificate-header"
+import { ElementsSidebar } from "./elements-sidebar"
+import { PropertiesSidebar } from "./properties-sidebar"
+import { PreviewModal } from "./preview-modal"
+import { useTemplates, type Template } from "../hooks/use-templates"
+import { useHistory } from "../hooks/use-history"
+import { supabase } from "../lib/supabase"
+import type { CanvasElement } from "../types/canvas"
+import { CanvasElementComponent } from "./canvas-element"
+import { generateCanvasPreview } from "../utils/canvas-to-image"
+import { exportAndDownloadCertificate, exportAndOpenCertificate } from "../utils/certificate-api"
+import { generateCertificatePDF } from '../utils/canvas-to-pdf';
 
 interface CertificateBuilderProps {
   template?: Template | null
@@ -463,6 +464,7 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
   const handleSave = async () => {
     if (!currentOrgId) {
       console.error("No organization ID available")
+      alert("No organization ID available. Please refresh or re-login.")
       return
     }
 
@@ -481,6 +483,7 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
         organization_id: currentOrgId,
         elements,
         thumbnail_url: thumbnailUrl,
+        template_img: null,
         created_by: user.id,
         canvas_width: canvasSize.width,
         canvas_height: canvasSize.height,
@@ -497,6 +500,38 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
 
       setHasUnsavedChanges(false)
       console.log("Template saved:", result)
+
+      // --- Generate and upload demo PDF ---
+      try {
+        const pdfBlob = await generateCertificatePDF(elements, canvasSize, testCertificateData)
+        // Always use the fixed bucket name 'certificates', only the file path is per-org
+        const bucketName = 'certificates';
+        const filename = `template_${result.id || template?.id || 'new'}_${Date.now()}.pdf`;
+        const filePath = `${currentOrgId}/templates/${filename}`;
+        console.log('Uploading PDF to Supabase Storage:', filePath)
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from(bucketName)
+          .upload(filePath, pdfBlob, {
+            contentType: 'application/pdf',
+            upsert: true,
+          })
+        if (uploadError) {
+          console.error('PDF upload error:', uploadError)
+          alert('Failed to upload PDF to Supabase Storage.');
+          throw uploadError
+        }
+        console.log('PDF uploaded successfully:', uploadData)
+        const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(filePath)
+        console.log('PDF public URL:', urlData?.publicUrl)
+        if (urlData?.publicUrl) {
+          const updateResult = await updateTemplate(result.id, { template_img: urlData.publicUrl })
+          console.log('Updated template_img in DB:', updateResult)
+        } else {
+          alert('No public URL returned for PDF!')
+        }
+      } catch (pdfError) {
+        console.warn('Failed to generate/upload demo PDF:', pdfError)
+      }
 
       // Refresh the templates list
       await refetch()
@@ -700,8 +735,8 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
         elements={elements}
         canvasSize={canvasSize}
         templateName={templateName}
-        onExport={handleExport}
-        testData={previewWithTestData ? testCertificateData : undefined}
+        // onExport={handleExport}
+        // testData={previewWithTestData ? testCertificateData : undefined}
       />
     </div>
   )

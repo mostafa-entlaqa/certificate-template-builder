@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
-import CertificateBuilder from "../../certificate-builder"
+import CertificateBuilder from "../../components/certificate-builder"
 import { supabase } from "../../lib/supabase"
 import type { Template } from "../../hooks/use-templates"
 

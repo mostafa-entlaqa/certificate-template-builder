@@ -9,6 +9,7 @@ export interface Template {
   name: string
   organization_id: string
   thumbnail_url: string | null
+  template_img: string | null
   elements: CanvasElement[]
   created_at: string
   updated_at: string
@@ -40,13 +41,22 @@ export function useTemplates() {
       // Fetch templates for the organization
       const { data, error } = await supabase
         .from("templates")
-        .select("*")
+        .select("id, name, template_img, organization_id, created_at, updated_at, created_by")
         .eq("organization_id", profile.organization_id)
         .order("updated_at", { ascending: false })
+        
 
       if (error) throw error
 
-      setTemplates(data || [])
+      // Patch missing fields for Template type
+      const patched = (data || []).map((t: any) => ({
+        ...t,
+        elements: [],
+        thumbnail_url: null,
+      }))
+
+      setTemplates(patched)
+      console.log('cerfdata', data)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch templates")
     } finally {

@@ -20,17 +20,19 @@ import {
   Flame,
   Gem,
   Star,
+  Image,
 } from "lucide-react"
 import { useRef } from "react"
 import type { CanvasElement } from "../types/canvas"
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd"
+import { Separator } from "@radix-ui/react-separator"
 
 interface ElementsSidebarProps {
   elements: CanvasElement[]
   selectedElement: string | null
   onAddTextElement: (style: any) => void
   onAddShapeElement: (shapeType: string, color: string) => void
-  onAddImageElement: (imageUrl: string | { id: string; type: string; x: number; y: number; width: number; height: number; zIndex: number; imageUrl: string }) => void
+  onAddImageElement: (imageUrl: string ) => void
   onSelectElement: (id: string) => void
   onDuplicateElement: (id: string) => void
   onDeleteElement: (id: string) => void
@@ -55,14 +57,14 @@ const defaultTextStyles = [
     icon: Type,
     color: "#6B7280",
   },
-  {
-    name: "Recipient Name",
-    fontSize: 36,
-    fontWeight: "bold",
-    content: "{{recipient_name}}",
-    icon: Type,
-    color: "#EF4444",
-  },
+  // {
+  //   name: "Recipient Name",
+  //   fontSize: 36,
+  //   fontWeight: "bold",
+  //   content: "{{recipient_name}}",
+  //   icon: Type,
+  //   color: "#EF4444",
+  // },
   {
     name: "Description",
     fontSize: 14,
@@ -253,6 +255,13 @@ export function ElementsSidebar({
                     onChange={handleImageUpload}
                   />
                   {/* QR Code Button */}
+                  
+                    <div className="flex px-0 pt-4 text-sm items-center gap-2">
+                    <ImageIcon className="h-4 w-4 text-blue-600" />
+                      Dynamic Images
+
+                      
+                    </div>
                   <Button
                     variant="outline"
                     className="w-full mt-2 bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200 hover:from-purple-100 hover:to-blue-100 transition-all duration-200 flex items-center gap-2"
@@ -277,7 +286,7 @@ export function ElementsSidebar({
               </Card>
 
               {/* Shapes */}
-              <Card className="bg-white/60 backdrop-blur-sm border-white/30 shadow-sm">
+              {/* <Card className="bg-white/60 backdrop-blur-sm border-white/30 shadow-sm">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm flex items-center gap-2">
                     <Square className="h-4 w-4 text-orange-600" />
@@ -300,7 +309,7 @@ export function ElementsSidebar({
                     ))}
                   </div>
                 </CardContent>
-              </Card>
+              </Card> */}
             </TabsContent>
 
             <TabsContent value="layers" className="space-y-2 mt-4">
