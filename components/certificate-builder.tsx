@@ -2,17 +2,18 @@
 
 import type React from "react"
 import { useState, useCallback, useEffect, useRef } from "react"
-import { CertificateHeader } from "./components/certificate-header"
-import { ElementsSidebar } from "./components/elements-sidebar"
-import { PropertiesSidebar } from "./components/properties-sidebar"
-import { PreviewModal } from "./components/preview-modal"
-import { useTemplates, type Template } from "./hooks/use-templates"
-import { useHistory } from "./hooks/use-history"
-import { supabase } from "./lib/supabase"
-import type { CanvasElement } from "./types/canvas"
-import { CanvasElementComponent } from "./components/canvas-element"
-import { generateCanvasPreview } from "./utils/canvas-to-image"
-import { exportAndDownloadCertificate, exportAndOpenCertificate } from "./utils/certificate-api"
+import { CertificateHeader } from "./certificate-header"
+import { ElementsSidebar } from "./elements-sidebar"
+import { PropertiesSidebar } from "./properties-sidebar"
+import { PreviewModal } from "./preview-modal"
+import { useTemplates, type Template } from "../hooks/use-templates"
+import { useHistory } from "../hooks/use-history"
+import { supabase } from "../lib/supabase"
+import type { CanvasElement } from "../types/canvas"
+import { CanvasElementComponent } from "./canvas-element-component"
+import { generateCanvasPreview } from "../utils/canvas-to-image"
+import { exportAndDownloadCertificate, exportAndOpenCertificate } from "../utils/certificate-api"
+import { generateCertificatePDF } from '../utils/canvas-to-pdf';
 
 interface CertificateBuilderProps {
   template?: Template | null
@@ -20,15 +21,19 @@ interface CertificateBuilderProps {
   onBack: () => void
   onSave?: (template: Template) => void
 }
-const QR_CODE_ELEMENT_TYPE = "qr"
 
 // Test data for certificate generation
 const testCertificateData = {
   student_name: "أحمد محمد علي",
+  recipient_name: "سارة إبراهيم",
   course_name: "تطوير تطبيقات الويب",
+  template_id: "",
+  org_id: "",
   completion_date: "15 ديسمبر 2024",
   instructor_name: "د. فاطمة السيد",
   grade: "ممتاز",
+  student_qr_url: "https://github.com/",
+  company_logo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIzNId5-0lNUVarWW_-q7DD0wPOkdyL5p71g&s"
 }
 
 // A4 sizes in px at 72dpi
@@ -217,6 +222,7 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
     [canvasSize, nextZIndex, saveToHistory],
   )
 
+  // Update element handler for react-moveable
   const updateElement = useCallback(
     (id: string, updates: Partial<CanvasElement>) => {
       setElements((prevElements) => prevElements.map((el) => (el.id === id ? { ...el, ...updates } : el)))
@@ -282,154 +288,16 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
     [isDragging, isResizing],
   )
 
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent, elementId: string, action: "drag" | "resize", handle?: string) => {
-      e.stopPropagation()
-      e.preventDefault()
+  // Remove old drag/resize handlers
+  // const handleMouseDown, handleMouseMove, handleMouseUp, etc. are no longer needed
 
-      const element = elements.find((el) => el.id === elementId)
-      if (!element) return
-
-      const rect = canvasRef.current?.getBoundingClientRect()
-      if (!rect) return
-
-      if (action === "drag") {
-        setIsDragging(true)
-        const scaleX = canvasSize.width / rect.width
-        const scaleY = canvasSize.height / rect.height
-
-        setDragStart({
-          x: (e.clientX - rect.left) * scaleX - element.x,
-          y: (e.clientY - rect.top) * scaleY - element.y,
-        })
-
-        document.body.style.cursor = "grabbing"
-        document.body.style.userSelect = "none"
-      } else if (action === "resize") {
-        setIsResizing(true)
-        setResizeHandle(handle || "se")
-        setResizeStart({
-          x: e.clientX,
-          y: e.clientY,
-          width: element.width,
-          height: element.height,
-          elementX: element.x,
-          elementY: element.y,
-        })
-      }
-
-      setSelectedElement(elementId)
-    },
-    [elements, canvasSize],
-  )
-
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent) => {
-      if (!selectedElement || (!isDragging && !isResizing)) return
-
-      const element = elements.find((el) => el.id === selectedElement)
-      if (!element) return
-
-      if (isDragging) {
-        const rect = canvasRef.current?.getBoundingClientRect()
-        if (!rect) return
-
-        const scaleX = canvasSize.width / rect.width
-        const scaleY = canvasSize.height / rect.height
-
-        const newX = (e.clientX - rect.left) * scaleX - dragStart.x
-        const newY = (e.clientY - rect.top) * scaleY - dragStart.y
-
-        updateElement(selectedElement, {
-          x: newX,
-          y: newY,
-        })
-      } else if (isResizing) {
-        const deltaX = e.clientX - resizeStart.x
-        const deltaY = e.clientY - resizeStart.y
-
-        let newWidth = resizeStart.width
-        let newHeight = resizeStart.height
-        let newX = resizeStart.elementX
-        let newY = resizeStart.elementY
-
-        switch (resizeHandle) {
-          case "nw":
-            newWidth = Math.max(20, resizeStart.width - deltaX)
-            newHeight = Math.max(20, resizeStart.height - deltaY)
-            newX = resizeStart.elementX + (resizeStart.width - newWidth)
-            newY = resizeStart.elementY + (resizeStart.height - newHeight)
-            break
-          case "ne":
-            newWidth = Math.max(20, resizeStart.width + deltaX)
-            newHeight = Math.max(20, resizeStart.height - deltaY)
-            newY = resizeStart.elementY + (resizeStart.height - newHeight)
-            break
-          case "sw":
-            newWidth = Math.max(20, resizeStart.width - deltaX)
-            newHeight = Math.max(20, resizeStart.height + deltaY)
-            newX = resizeStart.elementX + (resizeStart.width - newWidth)
-            break
-          case "se":
-            newWidth = Math.max(20, resizeStart.width + deltaX)
-            newHeight = Math.max(20, resizeStart.height + deltaY)
-            break
-          case "n":
-            newHeight = Math.max(20, resizeStart.height - deltaY)
-            newY = resizeStart.elementY + (resizeStart.height - newHeight)
-            break
-          case "s":
-            newHeight = Math.max(20, resizeStart.height + deltaY)
-            break
-          case "w":
-            newWidth = Math.max(20, resizeStart.width - deltaX)
-            newX = resizeStart.elementX + (resizeStart.width - newWidth)
-            break
-          case "e":
-            newWidth = Math.max(20, resizeStart.width + deltaX)
-            break
-        }
-
-        updateElement(selectedElement, {
-          x: newX,
-          y: newY,
-          width: newWidth,
-          height: newHeight,
-        })
-      }
-    },
-    [selectedElement, isDragging, isResizing, dragStart, resizeStart, resizeHandle, elements, canvasSize, updateElement],
-  )
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false)
-    setIsResizing(false)
-    setResizeHandle("")
-    document.body.style.cursor = "default"
-    document.body.style.userSelect = "auto"
-  }, [])
-
+  // Only hide center lines when not dragging/resizing
   useEffect(() => {
-    const handleGlobalMouseUp = () => handleMouseUp()
-    const handleGlobalMouseMove = (e: MouseEvent) => {
-      if (isDragging || isResizing) {
-        handleMouseMove(e as any)
-      }
+    if (!isDragging && !isResizing) {
+      setShowVCenter(false)
+      setShowHCenter(false)
     }
-
-    document.addEventListener("mouseup", handleGlobalMouseUp)
-    document.addEventListener("mousemove", handleGlobalMouseMove)
-
-    return () => {
-      document.removeEventListener("mouseup", handleGlobalMouseUp)
-      document.removeEventListener("mousemove", handleGlobalMouseMove)
-    }
-  }, [handleMouseUp, handleMouseMove, isDragging, isResizing])
-
-  useEffect(() => {
-    const maxZIndex = Math.max(0, ...elements.map((el) => el.zIndex || 0))
-    setNextZIndex(maxZIndex + 1)
-  }, [elements])
+  }, [isDragging, isResizing])
 
   // Add a handler to change canvas size and scale elements
   const handleCanvasSizeChange = useCallback(({ width, height }: { width: number; height: number }) => {
@@ -459,6 +327,7 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
   const handleSave = async () => {
     if (!currentOrgId) {
       console.error("No organization ID available")
+      alert("No organization ID available. Please refresh or re-login.")
       return
     }
 
@@ -477,6 +346,7 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
         organization_id: currentOrgId,
         elements,
         thumbnail_url: thumbnailUrl,
+        template_img: null,
         created_by: user.id,
         canvas_width: canvasSize.width,
         canvas_height: canvasSize.height,
@@ -494,15 +364,44 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
       setHasUnsavedChanges(false)
       console.log("Template saved:", result)
 
+      // --- Generate and upload demo PDF ---
+      try {
+        const pdfBlob = await generateCertificatePDF(elements, canvasSize, testCertificateData)
+        // Always use the fixed bucket name 'certificates', only the file path is per-org
+        const bucketName = 'certificates';
+        const filename = `template_${result.id || template?.id || 'new'}_${Date.now()}.pdf`;
+        const filePath = `${currentOrgId}/templates/${filename}`;
+        console.log('Uploading PDF to Supabase Storage:', filePath)
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from(bucketName)
+          .upload(filePath, pdfBlob, {
+            contentType: 'application/pdf',
+            upsert: true,
+          })
+        if (uploadError) {
+          console.error('PDF upload error:', uploadError)
+          alert('Failed to upload PDF to Supabase Storage.');
+          throw uploadError
+        }
+        console.log('PDF uploaded successfully:', uploadData)
+        const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(filePath)
+        console.log('PDF public URL:', urlData?.publicUrl)
+        if (urlData?.publicUrl) {
+          const updateResult = await updateTemplate(result.id, { template_img: urlData.publicUrl })
+          console.log('Updated template_img in DB:', updateResult)
+        } else {
+          alert('No public URL returned for PDF!')
+        }
+      } catch (pdfError) {
+        console.warn('Failed to generate/upload demo PDF:', pdfError)
+      }
+
       // Refresh the templates list
       await refetch()
 
       if (onSave) {
         onSave(result)
       }
-
-      // Go back to templates list after saving
-      onBack()
     } catch (error) {
       console.error("Save failed:", error)
       alert("Failed to save template. Please try again.")
@@ -535,11 +434,14 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
       await exportAndOpenCertificate({
         template_id: template.id,
         student_name: exportData.student_name,
+        recipient_name: exportData.recipient_name,
         course_name: exportData.course_name,
         completion_date: exportData.completion_date,
         instructor_name: exportData.instructor_name,
         grade: exportData.grade,
-        org_id: currentOrgId || ''
+        org_id: currentOrgId || '',
+        student_qr_url: exportData.student_qr_url,
+        company_logo: exportData.company_logo
       });
     } catch (error) {
       console.error("Export failed:", error);
@@ -571,14 +473,6 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
     setShowVCenter(Math.abs(elCenterX - canvasCenterX) < 2 && (isDragging || isResizing))
     setShowHCenter(Math.abs(elCenterY - canvasCenterY) < 2 && (isDragging || isResizing))
   }, [selectedElement, isDragging, isResizing, elements, canvasSize])
-
-  // Only hide center lines when not dragging/resizing
-  useEffect(() => {
-    if (!isDragging && !isResizing) {
-      setShowVCenter(false)
-      setShowHCenter(false)
-    }
-  }, [isDragging, isResizing])
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
@@ -628,9 +522,14 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
                 overflow: "hidden",
                 maxWidth: '100%',
                 maxHeight: '90vh',
+                backgroundImage: template && 'background' in template && template.background
+                  ? `url(${template.background})`
+                  : undefined,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                position: 'relative', // Ensure correct positioning for children
               }}
               onClick={handleCanvasClick}
-              onMouseMove={handleMouseMove}
             >
               {/* Center guide lines: always render, highlight if centered */}
               <div
@@ -671,10 +570,10 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
                     isSelected={selectedElement === element.id}
                     isEditing={isEditing && selectedElement === element.id}
                     onElementClick={handleElementClick}
-                    onMouseDown={handleMouseDown}
                     onDoubleClick={() => setIsEditing(true)}
                     onBlur={() => setIsEditing(false)}
-                    onContentChange={handleContentChange}
+                    onUpdateElement={updateElement}
+                    canvasSize={canvasSize}
                   />
                 ))}
             </div>
@@ -696,8 +595,8 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
         elements={elements}
         canvasSize={canvasSize}
         templateName={templateName}
-        onExport={handleExport}
-        testData={previewWithTestData ? testCertificateData : undefined}
+        // onExport={handleExport}
+        // testData={previewWithTestData ? testCertificateData : undefined}
       />
     </div>
   )

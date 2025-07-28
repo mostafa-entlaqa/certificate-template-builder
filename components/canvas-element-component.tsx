@@ -1,7 +1,8 @@
 "use client"
 
-import type React from "react"
-import { memo } from "react"
+import React, { memo } from "react"
+// @ts-ignore
+import { Rnd } from "react-rnd"
 import type { CanvasElement } from "../types/canvas"
 
 interface CanvasElementComponentProps {
@@ -9,9 +10,10 @@ interface CanvasElementComponentProps {
   isSelected: boolean
   isEditing: boolean
   onElementClick: (id: string, e: React.MouseEvent) => void
-  onMouseDown: (e: React.MouseEvent, elementId: string, action: "drag" | "resize", handle?: string) => void
   onDoubleClick: () => void
   onBlur: () => void
+  onUpdateElement: (id: string, updates: Partial<CanvasElement>) => void
+  canvasSize: { width: number; height: number }
 }
 
 export const CanvasElementComponent = memo(function CanvasElementComponent({
@@ -19,9 +21,10 @@ export const CanvasElementComponent = memo(function CanvasElementComponent({
   isSelected,
   isEditing,
   onElementClick,
-  onMouseDown,
   onDoubleClick,
   onBlur,
+  onUpdateElement,
+  canvasSize,
 }: CanvasElementComponentProps) {
   const getTextAlignStyle = (textAlign?: "left" | "center" | "right") => {
     switch (textAlign) {
@@ -37,23 +40,34 @@ export const CanvasElementComponent = memo(function CanvasElementComponent({
   }
 
   return (
-    <div
-      data-element-id={element.id}
-      className={`absolute group select-none ${isSelected ? "ring-2 ring-purple-400 shadow-lg" : ""}`}
-      style={{
-        left: element.x,
-        top: element.y,
-        width: element.width,
-        height: element.height,
-        zIndex: element.zIndex,
-        transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
-        cursor: "grab",
-        willChange: "transform", // Optimize for animations
+    <Rnd
+      size={{ width: element.width, height: element.height }}
+      position={{ x: element.x, y: element.y }}
+      bounds="parent"
+      enableResizing={isSelected}
+      disableDragging={!isSelected}
+      onDragStop={(e: any, d: any) => {
+        onUpdateElement(element.id, { x: d.x, y: d.y })
       }}
-      onClick={(e) => onElementClick(element.id, e)}
-      onMouseDown={(e) => onMouseDown(e, element.id, "drag")}
+      onResizeStop={(e: any, direction: any, ref: any, delta: any, position: any) => {
+        onUpdateElement(element.id, {
+          width: parseInt(ref.style.width, 10),
+          height: parseInt(ref.style.height, 10),
+          x: position.x,
+          y: position.y,
+        })
+      }}
+      style={{
+        zIndex: element.zIndex,
+        position: "absolute",
+        boxShadow: isSelected ? "0 0 0 2px #a78bfa, 0 4px 16px #0001" : undefined,
+        borderRadius: 8,
+        cursor: isSelected ? "move" : "grab",
+        transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
+        willChange: "transform",
+      }}
+      onClick={(e: any) => onElementClick(element.id, e)}
     >
-      {/* Element content */}
       {element.type === "text" && (
         <div
           contentEditable={isEditing}
@@ -69,6 +83,8 @@ export const CanvasElementComponent = memo(function CanvasElementComponent({
             backgroundColor: element.backgroundColor,
             ...getTextAlignStyle(element.textAlign),
             userSelect: isEditing ? "text" : "none",
+            width: "100%",
+            height: "100%",
           }}
           onDoubleClick={onDoubleClick}
           onBlur={onBlur}
@@ -76,7 +92,6 @@ export const CanvasElementComponent = memo(function CanvasElementComponent({
           {element.content}
         </div>
       )}
-
       {element.type === "image" && (
         <div className="w-full h-full rounded-lg overflow-hidden shadow-md">
           <img
@@ -88,11 +103,12 @@ export const CanvasElementComponent = memo(function CanvasElementComponent({
               objectFit: "contain",
               backgroundColor: "transparent",
               pointerEvents: "none",
+              width: "100%",
+              height: "100%",
             }}
           />
         </div>
       )}
-
       {element.type === "shape" && (
         <div
           className="w-full h-full shadow-md select-none"
@@ -106,50 +122,12 @@ export const CanvasElementComponent = memo(function CanvasElementComponent({
               element.shapeType === "star"
                 ? "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)"
                 : "none",
+            width: "100%",
+            height: "100%",
           }}
         />
       )}
-
-      {/* Selection handles */}
-      {isSelected && (
-        <>
-          <div
-            className="absolute -top-2 -left-2 w-4 h-4 bg-purple-500 rounded-full cursor-nw-resize shadow-lg border-2 border-white"
-            onMouseDown={(e) => onMouseDown(e, element.id, "resize", "nw")}
-          />
-          <div
-            className="absolute -top-2 -right-2 w-4 h-4 bg-purple-500 rounded-full cursor-ne-resize shadow-lg border-2 border-white"
-            onMouseDown={(e) => onMouseDown(e, element.id, "resize", "ne")}
-          />
-          <div
-            className="absolute -bottom-2 -left-2 w-4 h-4 bg-purple-500 rounded-full cursor-sw-resize shadow-lg border-2 border-white"
-            onMouseDown={(e) => onMouseDown(e, element.id, "resize", "sw")}
-          />
-          <div
-            className="absolute -bottom-2 -right-2 w-4 h-4 bg-purple-500 rounded-full cursor-se-resize shadow-lg border-2 border-white"
-            onMouseDown={(e) => onMouseDown(e, element.id, "resize", "se")}
-          />
-
-          {/* Middle handles */}
-          <div
-            className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-blue-500 rounded-full cursor-n-resize shadow-lg border-2 border-white"
-            onMouseDown={(e) => onMouseDown(e, element.id, "resize", "n")}
-          />
-          <div
-            className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-blue-500 rounded-full cursor-s-resize shadow-lg border-2 border-white"
-            onMouseDown={(e) => onMouseDown(e, element.id, "resize", "s")}
-          />
-          <div
-            className="absolute -left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 bg-blue-500 rounded-full cursor-w-resize shadow-lg border-2 border-white"
-            onMouseDown={(e) => onMouseDown(e, element.id, "resize", "w")}
-          />
-          <div
-            className="absolute -right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 bg-blue-500 rounded-full cursor-e-resize shadow-lg border-2 border-white"
-            onMouseDown={(e) => onMouseDown(e, element.id, "resize", "e")}
-          />
-        </>
-      )}
-    </div>
+    </Rnd>
   )
 })
 

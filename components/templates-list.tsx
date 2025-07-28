@@ -25,6 +25,7 @@ export function TemplatesList() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [templateToDelete, setTemplateToDelete] = useState<Template | null>(null)
 
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -52,8 +53,8 @@ export function TemplatesList() {
   }
 
   return (
-    <div className="p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="">
+      <div className="">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Certificate Templates</h1>
@@ -99,12 +100,35 @@ export function TemplatesList() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg overflow-hidden">
-                    {template.thumbnail_url ? (
-                      <img
-                        src={template.thumbnail_url || "/placeholder.svg"}
-                        alt={`${template.name} preview`}
-                        className="w-full h-full object-cover"
-                      />
+                    {template.template_img ? (
+                      template.template_img.endsWith('.pdf') ? (
+                        <>
+                          <div className="hidden md:block w-full h-full">
+                            <iframe
+                              src={template.template_img}
+                              title="PDF Preview"
+                              className="w-full h-full min-h-[200px]"
+                              style={{ border: 0 }}
+                            />
+                          </div>
+                          <div className="md:hidden flex items-center justify-center w-full h-full">
+                            <a
+                              href={template.template_img}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 underline text-sm"
+                            >
+                              View PDF Preview
+                            </a>
+                          </div>
+                        </>
+                      ) : (
+                        <img
+                          src={template.template_img}
+                          alt={`${template.name} preview`}
+                          className="w-full h-full object-cover"
+                        />
+                      )
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <span className="text-gray-500 text-sm">No Preview</span>

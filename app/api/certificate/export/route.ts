@@ -172,6 +172,7 @@ async function generateHTMLFromTemplate(template: any, studentData: any) {
       // Replace all placeholders globally
       displayText = displayText
         .replace(/{{student_name}}/g, studentData.student_name)
+        .replace(/{{recipient_name}}/g, studentData.recipient_name)
         .replace(/{{course_name}}/g, studentData.course_name)
         .replace(/{{completion_date}}/g, studentData.completion_date)
         .replace(/{{instructor_name}}/g, studentData.instructor_name)
@@ -182,7 +183,13 @@ async function generateHTMLFromTemplate(template: any, studentData: any) {
     } else if (type === 'rectangle') {
       return `<div class="element-${index}"></div>`
     } else if (type === 'image') {
-      return `<div class="element-${index}"></div>`
+      let imgUrl = imageUrl;
+      if (imageUrl === '/landscape-placeholder.svg' && studentData.company_logo) {
+        imgUrl = studentData.company_logo;
+        // Render as <img> for logo
+        return `<div class="element-${index}"><img src="${imgUrl}" alt="Company Logo" style="width:100%;height:100%;object-fit:contain;display:block;" /></div>`;
+      }
+      return `<div class="element-${index}" style="background-image:url('${imgUrl}');background-size:cover;background-position:center;background-repeat:no-repeat;"></div>`;
     } else if (type === 'qr') {
       // Generate QR code for the provided link
       const qrValue = studentData.student_qr_url || 'https://default-link.com';
@@ -240,6 +247,7 @@ async function generateHTMLFromTemplate(template: any, studentData: any) {
 
 interface CertificateExportRequest {
   student_name: string
+  recipient_name: string
   course_name: string
   template_id: string
   org_id: string
@@ -247,13 +255,14 @@ interface CertificateExportRequest {
   instructor_name: string
   grade: string
   student_qr_url?: string
+  company_logo?: string
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: CertificateExportRequest = await request.json()
     
-    const { template_id, student_name, course_name, org_id, completion_date, instructor_name, grade } = body
+    const { template_id, student_name, recipient_name, course_name, org_id, completion_date, instructor_name, grade, company_logo } = body
 
     // Validate required fields
     if (!template_id || typeof template_id !== 'string') {
@@ -350,13 +359,15 @@ export async function POST(request: NextRequest) {
       fixedTemplate,
       {
         student_name,
+        recipient_name,
         course_name,
         template_id,
         org_id,
         completion_date,
         instructor_name,
         grade,
-        student_qr_url: body.student_qr_url // ensure this is passed
+        student_qr_url: body.student_qr_url,
+        company_logo
       }
     )
 
