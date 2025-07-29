@@ -93,9 +93,7 @@ export function TemplatesList() {
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-lg font-semibold truncate">{template.name}</CardTitle>
-                    <Badge variant="secondary" className="text-xs">
-                      {template.elements.length} elements
-                    </Badge>
+                    
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -104,12 +102,17 @@ export function TemplatesList() {
                       template.template_img.endsWith('.pdf') ? (
                         <>
                           <div className="hidden md:block w-full h-full">
-                            <iframe
+                            {/* <iframe
                               src={template.template_img}
                               title="PDF Preview"
                               className="w-full h-full min-h-[200px]"
                               style={{ border: 0 }}
-                            />
+                            /> */}
+                               <img
+                          src={template.thumbnail_url || "/placeholder.svg"}
+                          alt={`${template.name} preview`}
+                          className="w-full h-full object-cover"
+                        />
                           </div>
                           <div className="md:hidden flex items-center justify-center w-full h-full">
                             <a
@@ -124,7 +127,7 @@ export function TemplatesList() {
                         </>
                       ) : (
                         <img
-                          src={template.template_img}
+                          src={template.thumbnail_url || "/placeholder.svg"}
                           alt={`${template.name} preview`}
                           className="w-full h-full object-cover"
                         />

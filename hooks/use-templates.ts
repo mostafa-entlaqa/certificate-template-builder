@@ -41,10 +41,11 @@ export function useTemplates() {
       // Fetch templates for the organization
       const { data, error } = await supabase
         .from("templates")
-        .select("id, name, template_img, organization_id, created_at, updated_at, created_by")
+        .select("id, name, template_img, organization_id, created_at, updated_at, created_by, thumbnail_url, template_img")
         .eq("organization_id", profile.organization_id)
         .order("updated_at", { ascending: false })
-        
+
+      console.log('cerfdatassssssssss', data)
 
       if (error) throw error
 
@@ -52,11 +53,9 @@ export function useTemplates() {
       const patched = (data || []).map((t: any) => ({
         ...t,
         elements: [],
-        thumbnail_url: null,
       }))
 
       setTemplates(patched)
-      console.log('cerfdata', data)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch templates")
     } finally {

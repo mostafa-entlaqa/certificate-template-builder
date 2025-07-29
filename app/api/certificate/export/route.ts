@@ -42,15 +42,16 @@ async function generateAndSavePDF(orgId: string, studentName: string, template: 
     
     // Generate PDF with exact size and no margins (pixel-perfect, no white bars)
     const pdfBuffer = await page.pdf({
-      width: `${canvasWidth}px`,
-      height: `${canvasHeight}px`,
+      width: `${canvasWidth + 8}px`,
+      height: `${canvasHeight + 8}px`,
       printBackground: true,
       margin: {
         top: '0px',
         right: '0px',
         bottom: '0px',
         left: '0px'
-      }
+      },
+      preferCSSPageSize: true
     })
     
     await browser.close()
@@ -201,9 +202,13 @@ async function generateHTMLFromTemplate(template: any, studentData: any) {
   .then(results => results.join('\n'))
   
   // Create background style
-  let backgroundStyle = `background: ${background};`
-  if (gradient) {
-    backgroundStyle = `background: ${gradient};`
+  let backgroundStyle = '';
+  if (template.background && typeof template.background === 'string') {
+    backgroundStyle = `background: url('${template.background}'); background-size: 100% 100%; background-repeat: no-repeat;`;
+  } else if (gradient) {
+    backgroundStyle = `background: ${gradient};`;
+  } else {
+    backgroundStyle = `background: ${background};`;
   }
   
   const htmlContent = `
@@ -227,6 +232,11 @@ async function generateHTMLFromTemplate(template: any, studentData: any) {
           position: relative;
           overflow: hidden;
           ${backgroundStyle}
+          background-size: 100% 100%;
+          background-repeat: no-repeat;
+          box-sizing: content-box;
+          padding: 4px;
+          background-clip: padding-box;
         }
         ${elementStyles}
       </style>

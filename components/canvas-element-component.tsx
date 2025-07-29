@@ -65,68 +65,71 @@ export const CanvasElementComponent = memo(function CanvasElementComponent({
         cursor: isSelected ? "move" : "grab",
         transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
         willChange: "transform",
+        overflow: "visible", // allow handles to overflow
       }}
       onClick={(e: any) => onElementClick(element.id, e)}
     >
-      {element.type === "text" && (
-        <div
-          contentEditable={isEditing}
-          suppressContentEditableWarning
-          className="w-full h-full flex items-center rounded-lg px-2 select-none"
-          style={{
-            fontSize: element.fontSize,
-            fontFamily: element.fontFamily,
-            fontWeight: element.fontWeight,
-            fontStyle: element.fontStyle,
-            textDecoration: element.textDecoration,
-            color: element.color,
-            backgroundColor: element.backgroundColor,
-            ...getTextAlignStyle(element.textAlign),
-            userSelect: isEditing ? "text" : "none",
-            width: "100%",
-            height: "100%",
-          }}
-          onDoubleClick={onDoubleClick}
-          onBlur={onBlur}
-        >
-          {element.content}
-        </div>
-      )}
-      {element.type === "image" && (
-        <div className="w-full h-full rounded-lg overflow-hidden shadow-md">
-          <img
-            src={element.imageUrl || "/placeholder.svg"}
-            alt=""
-            className="w-full h-full object-contain select-none"
-            draggable={false}
+      <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+        {element.type === "text" && (
+          <div
+            contentEditable={isEditing}
+            suppressContentEditableWarning
+            className="w-full h-full flex items-center rounded-lg px-2 select-none"
             style={{
-              objectFit: "contain",
-              backgroundColor: "transparent",
-              pointerEvents: "none",
+              fontSize: element.fontSize,
+              fontFamily: element.fontFamily,
+              fontWeight: element.fontWeight,
+              fontStyle: element.fontStyle,
+              textDecoration: element.textDecoration,
+              color: element.color,
+              backgroundColor: element.backgroundColor,
+              ...getTextAlignStyle(element.textAlign),
+              userSelect: isEditing ? "text" : "none",
+              width: "100%",
+              height: "100%",
+            }}
+            onDoubleClick={onDoubleClick}
+            onBlur={onBlur}
+          >
+            {element.content}
+          </div>
+        )}
+        {element.type === "image" && (
+          <div className="w-full h-full rounded-lg overflow-hidden shadow-md">
+            <img
+              src={element.imageUrl || "/placeholder.svg"}
+              alt=""
+              className="w-full h-full object-contain select-none"
+              draggable={false}
+              style={{
+                objectFit: "contain",
+                backgroundColor: "transparent",
+                pointerEvents: "none",
+                width: "100%",
+                height: "100%",
+              }}
+            />
+          </div>
+        )}
+        {element.type === "shape" && (
+          <div
+            className="w-full h-full shadow-md select-none"
+            style={{
+              backgroundColor: element.backgroundColor,
+              borderColor: element.borderColor,
+              borderWidth: element.borderWidth,
+              borderStyle: "solid",
+              borderRadius: element.shapeType === "circle" ? "50%" : element.shapeType === "star" ? "0" : "8px",
+              clipPath:
+                element.shapeType === "star"
+                  ? "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)"
+                  : "none",
               width: "100%",
               height: "100%",
             }}
           />
-        </div>
-      )}
-      {element.type === "shape" && (
-        <div
-          className="w-full h-full shadow-md select-none"
-          style={{
-            backgroundColor: element.backgroundColor,
-            borderColor: element.borderColor,
-            borderWidth: element.borderWidth,
-            borderStyle: "solid",
-            borderRadius: element.shapeType === "circle" ? "50%" : element.shapeType === "star" ? "0" : "8px",
-            clipPath:
-              element.shapeType === "star"
-                ? "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)"
-                : "none",
-            width: "100%",
-            height: "100%",
-          }}
-        />
-      )}
+        )}
+      </div>
     </Rnd>
   )
 })

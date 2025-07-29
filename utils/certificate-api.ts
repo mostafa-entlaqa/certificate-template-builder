@@ -56,37 +56,6 @@ export async function exportCertificate(data: CertificateExportData): Promise<Ce
 }
 
 /**
- * Downloads a PDF from base64 data
- */
-export function downloadPDFFromBase64(base64Data: string, filename: string) {
-  try {
-    // Convert base64 to blob
-    const byteCharacters = atob(base64Data)
-    const byteNumbers = new Array(byteCharacters.length)
-    
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i)
-    }
-    
-    const byteArray = new Uint8Array(byteNumbers)
-    const blob = new Blob([byteArray], { type: 'application/pdf' })
-
-    // Create download link
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  } catch (error) {
-    console.error('Download error:', error)
-    throw new Error('Failed to download PDF')
-  }
-}
-
-/**
  * Complete certificate export and download process
  */
 export async function exportAndDownloadCertificate(data: CertificateExportData): Promise<boolean> {
@@ -97,8 +66,19 @@ export async function exportAndDownloadCertificate(data: CertificateExportData):
       throw new Error(result.error || 'Export failed')
     }
 
-    downloadPDFFromBase64(result.data.pdf, result.data.filename)
-    return true
+    // Use the public_url or download_url to download the PDF
+    const url = result.data.public_url || result.data.download_url
+    if (typeof url === 'string' && url.length > 0) {
+      const a = document.createElement('a')
+      a.href = url
+      a.download = result.data.filename || 'certificate.pdf'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      return true
+    } else {
+      throw new Error('No public URL returned from export')
+    }
   } catch (error) {
     console.error('Export and download error:', error)
     alert(error instanceof Error ? error.message : 'Failed to export certificate')

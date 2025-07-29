@@ -26,6 +26,7 @@ import { useRef } from "react"
 import type { CanvasElement } from "../types/canvas"
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd"
 import { Separator } from "@radix-ui/react-separator"
+import { uploadImageToSupabase } from "../lib/supabase"
 
 interface ElementsSidebarProps {
   elements: CanvasElement[]
@@ -126,15 +127,16 @@ export function ElementsSidebar({
 }: ElementsSidebarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        const imageUrl = event.target?.result as string
-        onAddImageElement(imageUrl)
+      // Optionally, pass orgId if available in props/context
+      const url = await uploadImageToSupabase(file)
+      if (url) {
+        onAddImageElement(url)
+      } else {
+        alert("Failed to upload image. Please try again.")
       }
-      reader.readAsDataURL(file)
     }
   }
 

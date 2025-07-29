@@ -83,6 +83,8 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
   const [currentOrgId, setCurrentOrgId] = useState<string | null>(organizationId || null)
   const [showPreview, setShowPreview] = useState(false)
   const [previewWithTestData, setPreviewWithTestData] = useState(false)
+  const [templateImageUrl, setTemplateImageUrl] = useState<string | null>(null)
+  const [templateImageFile, setTemplateImageFile] = useState<File | null>(null)
 
   // Helper: check if selected element is centered
   const [showVCenter, setShowVCenter] = useState(false)
@@ -474,6 +476,36 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
     setShowHCenter(Math.abs(elCenterY - canvasCenterY) < 2 && (isDragging || isResizing))
   }, [selectedElement, isDragging, isResizing, elements, canvasSize])
 
+  // Handler for selecting a template from the header
+  const handleHeaderTemplateSelect = async (selectedTemplate: Template) => {
+    // Fetch full template data (including elements) from Supabase
+    const { data, error } = await supabase
+      .from("templates")
+      .select("id, name, elements, canvas_width, canvas_height, background")
+      .eq("id", selectedTemplate.id)
+      .single();
+    if (error) {
+      alert("Failed to load template data");
+      return;
+    }
+    setTemplateName(data.name);
+    setElements(data.elements || []);
+    setCanvasSize({
+      width: data.canvas_width || 842,
+      height: data.canvas_height || 595,
+    });
+    setTemplateImageUrl(data.background || null);
+    setTemplateImageFile(null);
+  };
+
+  // Handler for uploading an image as a template
+  const handleHeaderImageUpload = (file: File) => {
+    setTemplateImageFile(file);
+    setTemplateImageUrl(URL.createObjectURL(file));
+    setElements([]); // Clear elements for a fresh image template
+    setTemplateName("Untitled Template");
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
       <CertificateHeader
@@ -494,6 +526,8 @@ export default function CertificateBuilder({ template, organizationId, onBack, o
         // onTestGeneration={handleTestGeneration}
         canvasSizePreset={canvasSizePreset}
         onCanvasSizePresetChange={handleCanvasSizePresetChange}
+        onTemplateSelect={handleHeaderTemplateSelect}
+        onImageUpload={handleHeaderImageUpload}
       />
 
       <div className="flex flex-1 overflow-hidden">

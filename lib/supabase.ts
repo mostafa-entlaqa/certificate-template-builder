@@ -90,3 +90,29 @@ export type Database = {
     }
   }
 }
+
+// Utility to upload an image file to Supabase Storage and return the public URL
+export async function uploadImageToSupabase(file: File, orgId?: string): Promise<string | null> {
+  try {
+    const bucket = 'certificates'; // You can change this if you want a different bucket
+    const folder = orgId ? `${orgId}/uploads/` : 'uploads/';
+    const filename = `${Date.now()}_${file.name}`;
+    const filePath = `${folder}${filename}`;
+    // @ts-ignore
+    const { data, error } = await supabase.storage.from(bucket).upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: true,
+      contentType: file.type,
+    });
+    if (error) {
+      console.error('Image upload error:', error);
+      return null;
+    }
+    // @ts-ignore
+    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
+    return urlData?.publicUrl || null;
+  } catch (err) {
+    console.error('Image upload exception:', err);
+    return null;
+  }
+}

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Upload, FileText } from "lucide-react"
 import type { CanvasElement } from "../types/canvas"
+import { uploadImageToSupabase } from "../lib/supabase"
 
 interface PreviewModalProps {
   isOpen: boolean
@@ -54,15 +55,15 @@ export function PreviewModal({ isOpen, onClose, elements, canvasSize, templateNa
   }
 
   // Handle file upload for company_logo
-  const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        const url = event.target?.result as string
+      const url = await uploadImageToSupabase(file)
+      if (url) {
         setFieldValues((prev) => ({ ...prev, company_logo: url }))
+      } else {
+        alert("Failed to upload logo. Please try again.")
       }
-      reader.readAsDataURL(file)
     }
   }
 
